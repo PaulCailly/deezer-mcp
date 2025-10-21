@@ -135,7 +135,7 @@ const handler = createMcpHandler(async (server) => {
         query: z
           .string()
           .describe(
-            "Search query. Can be a simple text search or advanced search with filters like artist:\"name\" album:\"title\" track:\"song\" dur_min:300 bpm_max:200"
+            'Search query. Can be a simple text search or advanced search with filters like artist:"name" album:"title" track:"song" dur_min:300 bpm_max:200'
           ),
         strict: z
           .boolean()
@@ -186,7 +186,9 @@ const handler = createMcpHandler(async (server) => {
           content: [
             {
               type: "text",
-              text: `Error searching Deezer: ${error instanceof Error ? error.message : "Unknown error"}`,
+              text: `Error searching Deezer: ${
+                error instanceof Error ? error.message : "Unknown error"
+              }`,
             },
           ],
           structuredContent: {
