@@ -98,7 +98,7 @@ export default function Home() {
       {displayMode !== "fullscreen" && (
         <button
           aria-label="Enter fullscreen"
-          className="fixed top-4 right-4 z-50 rounded-full bg-white dark:bg-slate-800 text-purple-600 dark:text-purple-400 shadow-lg ring-1 ring-purple-900/10 dark:ring-purple-500/20 p-2.5 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors cursor-pointer"
+          className="fixed top-4 right-4 z-50 rounded-full bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 shadow-lg ring-1 ring-slate-900/10 dark:ring-white/10 p-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors cursor-pointer"
           onClick={() => requestDisplayMode("fullscreen")}
         >
           <svg
@@ -174,13 +174,20 @@ export default function Home() {
         {/* Header */}
         <div className="mb-6">
           <div className="flex items-center gap-3 mb-2">
-            <img src="/Logo.svg" alt="Deezer Logo" className="w-10 h-10" />
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-purple-400 bg-clip-text text-transparent">
+            <svg
+              className="w-8 h-8 text-orange-500"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+            >
+              <path d="M18.7 7.2c-.9-.9-2.1-1.4-3.4-1.4-2.6 0-4.8 2.1-4.8 4.8 0 1.3.5 2.5 1.4 3.4.9.9 2.1 1.4 3.4 1.4 2.6 0 4.8-2.1 4.8-4.8 0-1.3-.5-2.5-1.4-3.4zm-3.4 6.2c-1.6 0-2.9-1.3-2.9-2.9s1.3-2.9 2.9-2.9 2.9 1.3 2.9 2.9-1.3 2.9-2.9 2.9z" />
+              <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.4 0-8-3.6-8-8s3.6-8 8-8 8 3.6 8 8-3.6 8-8 8z" />
+            </svg>
+            <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
               Deezer Music Search
             </h1>
           </div>
           {!isChatGptApp && (
-            <div className="bg-purple-50 dark:bg-purple-950 border border-purple-200 dark:border-purple-800 rounded-lg px-4 py-2 text-sm text-purple-900 dark:text-purple-100">
+            <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg px-4 py-2 text-sm text-blue-900 dark:text-blue-100">
               This widget displays search results from the Deezer API via MCP.
               Use ChatGPT to search for music!
             </div>
@@ -189,18 +196,18 @@ export default function Home() {
 
         {/* Search Info */}
         {searchData?.query && (
-          <div className="mb-6 p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-100 dark:border-purple-800">
+          <div className="mb-6 p-4 bg-slate-100 dark:bg-slate-800 rounded-lg">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div>
-                <span className="text-sm text-purple-600 dark:text-purple-400">
+                <span className="text-sm text-slate-600 dark:text-slate-400">
                   Search query:
                 </span>
-                <span className="ml-2 font-semibold text-purple-900 dark:text-purple-100">
+                <span className="ml-2 font-semibold text-slate-900 dark:text-white">
                   {searchData.query}
                 </span>
               </div>
               {searchData.total !== undefined && (
-                <span className="text-sm font-medium text-purple-600 dark:text-purple-400">
+                <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
                   {searchData.total.toLocaleString()} results found
                 </span>
               )}
@@ -252,7 +259,7 @@ export default function Home() {
             {searchData.results!.map((track) => (
               <div
                 key={track.id}
-                className="bg-white dark:bg-slate-800 rounded-lg shadow-sm hover:shadow-lg hover:shadow-purple-500/10 transition-all border border-purple-100 dark:border-purple-900/30 overflow-hidden"
+                className="bg-white dark:bg-slate-800 rounded-lg shadow-sm hover:shadow-md transition-shadow border border-slate-200 dark:border-slate-700 overflow-hidden"
               >
                 <div className="flex gap-4 p-4">
                   {/* Album Cover */}
@@ -311,7 +318,7 @@ export default function Home() {
                         href={track.link}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-sm font-medium text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300"
+                        className="inline-flex items-center gap-1 text-sm font-medium text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300"
                       >
                         <svg
                           className="w-4 h-4"
@@ -327,7 +334,7 @@ export default function Home() {
                         href={track.artist.link}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-sm font-medium text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300"
+                        className="inline-flex items-center gap-1 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
                       >
                         View Artist
                       </a>
