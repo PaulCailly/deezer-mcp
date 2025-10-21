@@ -55,13 +55,34 @@ function formatDuration(seconds: number): string {
 export default function Home() {
   const toolOutput = useWidgetProps<{
     result?: { structuredContent?: DeezerSearchResult };
+    query?: string;
+    results?: DeezerTrack[];
+    total?: number;
+    error?: string;
   }>();
   const maxHeight = useMaxHeight() ?? undefined;
   const displayMode = useDisplayMode();
   const requestDisplayMode = useRequestDisplayMode();
   const isChatGptApp = useIsChatGptApp();
 
-  const searchData = toolOutput?.result?.structuredContent;
+  // Debug logging
+  console.log("Full toolOutput:", toolOutput);
+  console.log("toolOutput?.result:", toolOutput?.result);
+  console.log("structuredContent:", toolOutput?.result?.structuredContent);
+
+  // Support both wrapped and unwrapped data structures
+  // ChatGPT may pass data directly or wrapped in result.structuredContent
+  const searchData: DeezerSearchResult | undefined =
+    toolOutput?.result?.structuredContent ||
+    (toolOutput?.query || toolOutput?.results || toolOutput?.error
+      ? {
+          query: toolOutput.query,
+          results: toolOutput.results,
+          total: toolOutput.total,
+          error: toolOutput.error,
+        }
+      : undefined);
+
   const hasResults = searchData?.results && searchData.results.length > 0;
   const hasError = searchData?.error;
 
@@ -98,6 +119,58 @@ export default function Home() {
       )}
 
       <div className="p-4 sm:p-6 max-w-6xl mx-auto">
+        {/* Debug Panel - Remove this after testing */}
+        <details className="mb-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+          <summary className="cursor-pointer font-semibold text-yellow-900 dark:text-yellow-100 mb-2">
+            🐛 Debug Info (Click to expand)
+          </summary>
+          <div className="mt-2 space-y-2">
+            <div>
+              <strong className="text-yellow-900 dark:text-yellow-100">
+                toolOutput exists:
+              </strong>{" "}
+              <span className="text-yellow-800 dark:text-yellow-200">
+                {toolOutput ? "Yes" : "No"}
+              </span>
+            </div>
+            <div>
+              <strong className="text-yellow-900 dark:text-yellow-100">
+                toolOutput?.result exists:
+              </strong>{" "}
+              <span className="text-yellow-800 dark:text-yellow-200">
+                {toolOutput?.result ? "Yes" : "No"}
+              </span>
+            </div>
+            <div>
+              <strong className="text-yellow-900 dark:text-yellow-100">
+                searchData exists:
+              </strong>{" "}
+              <span className="text-yellow-800 dark:text-yellow-200">
+                {searchData ? "Yes" : "No"}
+              </span>
+            </div>
+            <div>
+              <strong className="text-yellow-900 dark:text-yellow-100">
+                searchData?.query:
+              </strong>{" "}
+              <span className="text-yellow-800 dark:text-yellow-200">
+                {searchData?.query || "N/A"}
+              </span>
+            </div>
+            <div>
+              <strong className="text-yellow-900 dark:text-yellow-100">
+                Results count:
+              </strong>{" "}
+              <span className="text-yellow-800 dark:text-yellow-200">
+                {searchData?.results?.length || 0}
+              </span>
+            </div>
+            <pre className="mt-2 p-2 bg-yellow-100 dark:bg-yellow-950 rounded text-xs overflow-auto max-h-40">
+              {JSON.stringify(toolOutput, null, 2)}
+            </pre>
+          </div>
+        </details>
+
         {/* Header */}
         <div className="mb-6">
           <div className="flex items-center gap-3 mb-2">
