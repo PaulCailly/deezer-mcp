@@ -7,6 +7,40 @@ const getAppsSdkCompatibleHtml = async (baseUrl: string, path: string) => {
   return await result.text();
 };
 
+async function getHtmlWithFallback(): Promise<{ html: string; base: string }> {
+  const candidates = new Set<string>();
+  if (baseURL) {
+    candidates.add(baseURL);
+    // If the base URL is localhost:3000, also try 3001 (Next may pick 3001)
+    if (baseURL.includes("localhost:3000")) {
+      candidates.add("http://localhost:3001");
+    }
+    if (baseURL.includes("localhost:3001")) {
+      candidates.add("http://localhost:3000");
+    }
+  } else {
+    candidates.add("http://localhost:3001");
+    candidates.add("http://localhost:3000");
+  }
+
+  for (const candidate of candidates) {
+    try {
+      const html = await getAppsSdkCompatibleHtml(candidate, "/");
+      if (typeof html === "string" && html.length > 0) {
+        return { html, base: candidate };
+      }
+    } catch {
+      // try next candidate
+    }
+  }
+
+  // Minimal fallback HTML if dev fetch failed (still allows host injection)
+  return {
+    html: `<!doctype html><html><head><base href="${baseURL}"></head><body><div>App base not reachable. Ensure dev server is running.</div></body></html>`,
+    base: baseURL,
+  };
+}
+
 type ContentWidget = {
   id: string;
   title: string;
@@ -84,15 +118,13 @@ async function searchDeezer(
 }
 
 const handler = createMcpHandler(async (server) => {
-  const html = await getAppsSdkCompatibleHtml(baseURL, "/");
-
   const deezerWidget: ContentWidget = {
     id: "deezer_search",
     title: "Deezer Search",
     templateUri: "ui://widget/deezer-template.html",
     invoking: "Searching Deezer...",
     invoked: "Search completed",
-    html: html,
+    html: "", // will be fetched on demand in the resource handler
     description: "Search for tracks on Deezer",
     widgetDomain: "https://www.deezer.com",
   };
@@ -109,20 +141,34 @@ const handler = createMcpHandler(async (server) => {
         "openai/widgetPrefersBorder": true,
       },
     },
-    async (uri) => ({
-      contents: [
-        {
-          uri: uri.href,
-          mimeType: "text/html+skybridge",
-          text: `<html>${deezerWidget.html}</html>`,
-          _meta: {
-            "openai/widgetDescription": deezerWidget.description,
-            "openai/widgetPrefersBorder": true,
-            "openai/widgetDomain": deezerWidget.widgetDomain,
+    async (uri) => {
+      const { html, base } = await getHtmlWithFallback();
+      // Ensure base href and window.innerBaseUrl are consistent for the chosen candidate
+      const origin = new URL(base).origin;
+      const rewritten = html
+        .replace(
+          /<base href=["'][^"']+["']><\/base>/,
+          `<base href="${origin}"><\/base>`
+        ) // base tag
+        .replace(
+          /window\.innerBaseUrl\s*=\s*[^<]+/,
+          `window.innerBaseUrl = ${JSON.stringify(origin)}`
+        );
+      return {
+        contents: [
+          {
+            uri: uri.href,
+            mimeType: "text/html+skybridge",
+            text: `<html>${rewritten}</html>`,
+            _meta: {
+              "openai/widgetDescription": deezerWidget.description,
+              "openai/widgetPrefersBorder": true,
+              "openai/widgetDomain": deezerWidget.widgetDomain,
+            },
           },
-        },
-      ],
-    })
+        ],
+      };
+    }
   );
 
   server.registerTool(

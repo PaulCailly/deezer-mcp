@@ -71,10 +71,14 @@ export default function Home() {
     const handler = (event: CustomEvent) => {
       console.log("[Page] Global SET_GLOBALS event detected:", event.detail);
     };
-    
+
     if (typeof window !== "undefined") {
       window.addEventListener("openai:set_globals", handler as EventListener);
-      return () => window.removeEventListener("openai:set_globals", handler as EventListener);
+      return () =>
+        window.removeEventListener(
+          "openai:set_globals",
+          handler as EventListener
+        );
     }
   }, []);
 
@@ -82,7 +86,10 @@ export default function Home() {
   console.log("[Page] Component rendered at:", new Date().toISOString());
   console.log("[Page] Full toolOutput:", toolOutput);
   console.log("[Page] toolOutput?.result:", toolOutput?.result);
-  console.log("[Page] structuredContent:", toolOutput?.result?.structuredContent);
+  console.log(
+    "[Page] structuredContent:",
+    toolOutput?.result?.structuredContent
+  );
 
   // Support both wrapped and unwrapped data structures
   // ChatGPT may pass data directly or wrapped in result.structuredContent
