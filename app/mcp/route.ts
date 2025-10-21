@@ -28,28 +28,84 @@ function widgetMeta(widget: ContentWidget) {
   } as const;
 }
 
+// Deezer API Types
+interface DeezerTrack {
+  id: number;
+  title: string;
+  title_short: string;
+  title_version?: string;
+  link: string;
+  duration: number;
+  rank: number;
+  explicit_lyrics: boolean;
+  preview: string;
+  artist: {
+    id: number;
+    name: string;
+    link: string;
+    picture: string;
+    picture_small: string;
+    picture_medium: string;
+    picture_big: string;
+    picture_xl: string;
+  };
+  album: {
+    id: number;
+    title: string;
+    cover: string;
+    cover_small: string;
+    cover_medium: string;
+    cover_big: string;
+    cover_xl: string;
+  };
+}
+
+interface DeezerSearchResponse {
+  data: DeezerTrack[];
+  total: number;
+  next?: string;
+}
+
+async function searchDeezer(
+  query: string,
+  strict?: boolean,
+  order?: string
+): Promise<DeezerSearchResponse> {
+  const params = new URLSearchParams({ q: query });
+  if (strict) params.append("strict", "on");
+  if (order) params.append("order", order);
+
+  const response = await fetch(`https://api.deezer.com/search?${params}`);
+  if (!response.ok) {
+    throw new Error(`Deezer API error: ${response.statusText}`);
+  }
+
+  return await response.json();
+}
+
 const handler = createMcpHandler(async (server) => {
   const html = await getAppsSdkCompatibleHtml(baseURL, "/");
 
-  const contentWidget: ContentWidget = {
-    id: "show_content",
-    title: "Show Content",
-    templateUri: "ui://widget/content-template.html",
-    invoking: "Loading content...",
-    invoked: "Content loaded",
+  const deezerWidget: ContentWidget = {
+    id: "deezer_search",
+    title: "Deezer Search",
+    templateUri: "ui://widget/deezer-template.html",
+    invoking: "Searching Deezer...",
+    invoked: "Search completed",
     html: html,
-    description: "Displays the homepage content",
-    widgetDomain: "https://nextjs.org/docs",
+    description: "Search for tracks on Deezer",
+    widgetDomain: "https://www.deezer.com",
   };
+
   server.registerResource(
-    "content-widget",
-    contentWidget.templateUri,
+    "deezer-widget",
+    deezerWidget.templateUri,
     {
-      title: contentWidget.title,
-      description: contentWidget.description,
+      title: deezerWidget.title,
+      description: deezerWidget.description,
       mimeType: "text/html+skybridge",
       _meta: {
-        "openai/widgetDescription": contentWidget.description,
+        "openai/widgetDescription": deezerWidget.description,
         "openai/widgetPrefersBorder": true,
       },
     },
@@ -58,11 +114,11 @@ const handler = createMcpHandler(async (server) => {
         {
           uri: uri.href,
           mimeType: "text/html+skybridge",
-          text: `<html>${contentWidget.html}</html>`,
+          text: `<html>${deezerWidget.html}</html>`,
           _meta: {
-            "openai/widgetDescription": contentWidget.description,
+            "openai/widgetDescription": deezerWidget.description,
             "openai/widgetPrefersBorder": true,
-            "openai/widgetDomain": contentWidget.widgetDomain,
+            "openai/widgetDomain": deezerWidget.widgetDomain,
           },
         },
       ],
@@ -70,30 +126,77 @@ const handler = createMcpHandler(async (server) => {
   );
 
   server.registerTool(
-    contentWidget.id,
+    deezerWidget.id,
     {
-      title: contentWidget.title,
+      title: deezerWidget.title,
       description:
-        "Fetch and display the homepage content with the name of the user",
+        "Search for music tracks on Deezer. Supports basic search (e.g., 'eminem') and advanced search with filters (e.g., 'artist:\"aloe blacc\" track:\"i need a dollar\"'). You can filter by artist, album, track, label, duration (dur_min, dur_max), and BPM (bpm_min, bpm_max).",
       inputSchema: {
-        name: z.string().describe("The name of the user to display on the homepage"),
+        query: z
+          .string()
+          .describe(
+            "Search query. Can be a simple text search or advanced search with filters like artist:\"name\" album:\"title\" track:\"song\" dur_min:300 bpm_max:200"
+          ),
+        strict: z
+          .boolean()
+          .optional()
+          .describe("Disable fuzzy search mode for exact matches"),
+        order: z
+          .enum([
+            "RANKING",
+            "TRACK_ASC",
+            "TRACK_DESC",
+            "ARTIST_ASC",
+            "ARTIST_DESC",
+            "ALBUM_ASC",
+            "ALBUM_DESC",
+            "RATING_ASC",
+            "RATING_DESC",
+            "DURATION_ASC",
+            "DURATION_DESC",
+          ])
+          .optional()
+          .describe("Sort order for results"),
       },
-      _meta: widgetMeta(contentWidget),
+      _meta: widgetMeta(deezerWidget),
     },
-    async ({ name }) => {
-      return {
-        content: [
-          {
-            type: "text",
-            text: name,
+    async ({ query, strict, order }) => {
+      try {
+        const results = await searchDeezer(query, strict, order);
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Found ${results.total} tracks for "${query}"`,
+            },
+          ],
+          structuredContent: {
+            query,
+            strict,
+            order,
+            results: results.data,
+            total: results.total,
+            timestamp: new Date().toISOString(),
           },
-        ],
-        structuredContent: {
-          name: name,
-          timestamp: new Date().toISOString(),
-        },
-        _meta: widgetMeta(contentWidget),
-      };
+          _meta: widgetMeta(deezerWidget),
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error searching Deezer: ${error instanceof Error ? error.message : "Unknown error"}`,
+            },
+          ],
+          structuredContent: {
+            query,
+            error: error instanceof Error ? error.message : "Unknown error",
+            timestamp: new Date().toISOString(),
+          },
+          _meta: widgetMeta(deezerWidget),
+        };
+      }
     }
   );
 });

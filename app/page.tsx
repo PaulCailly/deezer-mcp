@@ -1,7 +1,5 @@
 "use client";
 
-import Image from "next/image";
-import Link from "next/link";
 import {
   useWidgetProps,
   useMaxHeight,
@@ -10,24 +8,70 @@ import {
   useIsChatGptApp,
 } from "./hooks";
 
+interface DeezerTrack {
+  id: number;
+  title: string;
+  title_short: string;
+  title_version?: string;
+  link: string;
+  duration: number;
+  rank: number;
+  explicit_lyrics: boolean;
+  preview: string;
+  artist: {
+    id: number;
+    name: string;
+    link: string;
+    picture: string;
+    picture_small: string;
+    picture_medium: string;
+    picture_big: string;
+    picture_xl: string;
+  };
+  album: {
+    id: number;
+    title: string;
+    cover: string;
+    cover_small: string;
+    cover_medium: string;
+    cover_big: string;
+    cover_xl: string;
+  };
+}
+
+interface DeezerSearchResult {
+  query?: string;
+  results?: DeezerTrack[];
+  total?: number;
+  error?: string;
+}
+
+function formatDuration(seconds: number): string {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}:${secs.toString().padStart(2, "0")}`;
+}
+
 export default function Home() {
   const toolOutput = useWidgetProps<{
-    name?: string;
-    result?: { structuredContent?: { name?: string } };
+    result?: { structuredContent?: DeezerSearchResult };
   }>();
   const maxHeight = useMaxHeight() ?? undefined;
   const displayMode = useDisplayMode();
   const requestDisplayMode = useRequestDisplayMode();
   const isChatGptApp = useIsChatGptApp();
 
-  const name = toolOutput?.result?.structuredContent?.name || toolOutput?.name;
+  const searchData = toolOutput?.result?.structuredContent;
+  const hasResults = searchData?.results && searchData.results.length > 0;
+  const hasError = searchData?.error;
 
   return (
     <div
-      className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center p-8 pb-20 gap-16 sm:p-20"
+      className="font-sans w-full"
       style={{
         maxHeight,
         height: displayMode === "fullscreen" ? maxHeight : undefined,
+        overflow: displayMode === "fullscreen" ? "auto" : undefined,
       }}
     >
       {displayMode !== "fullscreen" && (
@@ -52,78 +96,190 @@ export default function Home() {
           </svg>
         </button>
       )}
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        {!isChatGptApp && (
-          <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg px-4 py-3 w-full">
-            <div className="flex items-center gap-3">
-              <svg
-                className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-                aria-hidden="true"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm text-blue-900 dark:text-blue-100 font-medium">
-                  This app relies on data from a ChatGPT session.
-                </p>
-                <p className="text-sm text-blue-900 dark:text-blue-100 font-medium">
-                  No{" "}
-                  <a
-                    href="https://developers.openai.com/apps-sdk/reference"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="underline hover:no-underline font-mono bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded"
-                  >
-                    window.openai
-                  </a>{" "}
-                  property detected
-                </p>
+
+      <div className="p-4 sm:p-6 max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="mb-6">
+          <div className="flex items-center gap-3 mb-2">
+            <svg
+              className="w-8 h-8 text-orange-500"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+            >
+              <path d="M18.7 7.2c-.9-.9-2.1-1.4-3.4-1.4-2.6 0-4.8 2.1-4.8 4.8 0 1.3.5 2.5 1.4 3.4.9.9 2.1 1.4 3.4 1.4 2.6 0 4.8-2.1 4.8-4.8 0-1.3-.5-2.5-1.4-3.4zm-3.4 6.2c-1.6 0-2.9-1.3-2.9-2.9s1.3-2.9 2.9-2.9 2.9 1.3 2.9 2.9-1.3 2.9-2.9 2.9z" />
+              <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.4 0-8-3.6-8-8s3.6-8 8-8 8 3.6 8 8-3.6 8-8 8z" />
+            </svg>
+            <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
+              Deezer Music Search
+            </h1>
+          </div>
+          {!isChatGptApp && (
+            <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg px-4 py-2 text-sm text-blue-900 dark:text-blue-100">
+              This widget displays search results from the Deezer API via MCP.
+              Use ChatGPT to search for music!
+            </div>
+          )}
+        </div>
+
+        {/* Search Info */}
+        {searchData?.query && (
+          <div className="mb-6 p-4 bg-slate-100 dark:bg-slate-800 rounded-lg">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div>
+                <span className="text-sm text-slate-600 dark:text-slate-400">
+                  Search query:
+                </span>
+                <span className="ml-2 font-semibold text-slate-900 dark:text-white">
+                  {searchData.query}
+                </span>
               </div>
+              {searchData.total !== undefined && (
+                <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                  {searchData.total.toLocaleString()} results found
+                </span>
+              )}
             </div>
           </div>
         )}
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Welcome to the ChatGPT Apps SDK Next.js Starter
-          </li>
-          <li className="mb-2 tracking-[-.01em]">
-            Name returned from tool call: {name ?? "..."}
-          </li>
-          <li className="mb-2 tracking-[-.01em]">MCP server path: /mcp</li>
-        </ol>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <Link
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            prefetch={false}
-            href="/custom-page"
-          >
-            Visit another page
-          </Link>
-          <a
-            href="https://vercel.com/templates/ai/chatgpt-app-with-next-js"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="underline"
-          >
-            Deploy on Vercel
-          </a>
-        </div>
-      </main>
+        {/* Error State */}
+        {hasError && (
+          <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg px-4 py-3">
+            <p className="text-sm text-red-900 dark:text-red-100">
+              <strong>Error:</strong> {searchData.error}
+            </p>
+          </div>
+        )}
+
+        {/* Empty State */}
+        {!hasResults && !hasError && (
+          <div className="text-center py-12">
+            <svg
+              className="w-16 h-16 mx-auto mb-4 text-slate-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"
+              />
+            </svg>
+            <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-2">
+              No search results yet
+            </h3>
+            <p className="text-slate-600 dark:text-slate-400">
+              Ask ChatGPT to search for music on Deezer!
+            </p>
+            <p className="text-sm text-slate-500 dark:text-slate-500 mt-4">
+              Examples: &quot;Search for Eminem&quot;, &quot;Find tracks by Aloe
+              Blacc&quot;
+            </p>
+          </div>
+        )}
+
+        {/* Results Grid */}
+        {hasResults && (
+          <div className="grid gap-4">
+            {searchData.results!.map((track) => (
+              <div
+                key={track.id}
+                className="bg-white dark:bg-slate-800 rounded-lg shadow-sm hover:shadow-md transition-shadow border border-slate-200 dark:border-slate-700 overflow-hidden"
+              >
+                <div className="flex gap-4 p-4">
+                  {/* Album Cover */}
+                  <div className="flex-shrink-0">
+                    <img
+                      src={track.album.cover_medium}
+                      alt={track.album.title}
+                      className="w-24 h-24 rounded-md object-cover"
+                    />
+                  </div>
+
+                  {/* Track Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-semibold text-lg text-slate-900 dark:text-white truncate">
+                          {track.title}
+                          {track.explicit_lyrics && (
+                            <span className="ml-2 inline-flex items-center px-2 py-0.5 text-xs font-medium bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 rounded">
+                              E
+                            </span>
+                          )}
+                        </h3>
+                        <p className="text-slate-600 dark:text-slate-400 truncate">
+                          {track.artist.name}
+                        </p>
+                        <p className="text-sm text-slate-500 dark:text-slate-500 truncate">
+                          {track.album.title}
+                        </p>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <p className="text-sm text-slate-600 dark:text-slate-400">
+                          {formatDuration(track.duration)}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Audio Preview */}
+                    {track.preview && (
+                      <div className="mt-3">
+                        <audio
+                          controls
+                          className="w-full h-8"
+                          preload="none"
+                          style={{ maxWidth: "400px" }}
+                        >
+                          <source src={track.preview} type="audio/mpeg" />
+                          Your browser does not support the audio element.
+                        </audio>
+                      </div>
+                    )}
+
+                    {/* Links */}
+                    <div className="mt-3 flex gap-2 flex-wrap">
+                      <a
+                        href={track.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-sm font-medium text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300"
+                      >
+                        <svg
+                          className="w-4 h-4"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
+                          <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
+                        </svg>
+                        Listen on Deezer
+                      </a>
+                      <a
+                        href={track.artist.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
+                      >
+                        View Artist
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Footer */}
+        {hasResults && searchData.results!.length < (searchData.total ?? 0) && (
+          <div className="mt-6 text-center text-sm text-slate-600 dark:text-slate-400">
+            Showing {searchData.results!.length} of {searchData.total} results
+          </div>
+        )}
+      </div>
     </div>
   );
 }
